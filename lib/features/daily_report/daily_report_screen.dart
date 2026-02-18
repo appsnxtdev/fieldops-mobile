@@ -4,11 +4,24 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import 'daily_report_repository.dart';
+import '../../core/errors/user_facing_messages.dart';
 import '../../core/storage/sync_queue_repository.dart';
 import '../../core/sync/sync_status_notifier.dart';
+
+/// Copy picked image to a persistent path so it survives for sync when offline.
+Future<String> _persistPhotoPath(String pickedPath) async {
+  final dir = await getApplicationDocumentsDirectory();
+  final photosDir = Directory('${dir.path}/daily_report_photos');
+  if (!await photosDir.exists()) await photosDir.create(recursive: true);
+  final name = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+  final dest = File('${photosDir.path}/$name');
+  await File(pickedPath).copy(dest.path);
+  return dest.path;
+}
 
 class DailyReportScreen extends StatefulWidget {
   const DailyReportScreen({super.key, required this.projectId});
@@ -33,18 +46,19 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
   void _showToast(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).clearSnackBars();
+    final theme = Theme.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Text(
             message,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.colorScheme.onPrimary),
           ),
         ),
         duration: _snackDuration,
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.deepOrange.shade700,
+        backgroundColor: theme.colorScheme.primary,
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
@@ -54,10 +68,14 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
   static String _dateToString(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
+  static String _todayString() => _dateToString(DateTime.now());
+
+  bool get _isToday => _reportDate == _todayString();
+
   @override
   void initState() {
     super.initState();
-    _reportDate = _dateToString(DateTime.now());
+    _reportDate = _todayString();
     _load();
   }
 
@@ -67,16 +85,13 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
       final list = await _repo.getEntries(widget.projectId, _reportDate);
       if (mounted) setState(() => _entries = list);
     } catch (e) {
-      if (mounted) setState(() => _entries = []);
+      if (mounted) {
+        setState(() => _entries = []);
+        _showToast(userFacingMessage(e));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  String? _errorMessage(DioException e) {
-    final data = e.response?.data;
-    if (data is Map && data['detail'] != null) return data['detail'].toString();
-    return e.message;
   }
 
   bool _isNetworkError(Object e) {
@@ -101,6 +116,10 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
   }
 
   Future<void> _addNote() async {
+    if (!_isToday) {
+      _showToast('You can only add entries for today. Select today\'s date to add.');
+      return;
+    }
     final controller = TextEditingController();
     final submitted = await showDialog<bool>(
       context: context,
@@ -151,17 +170,27 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
           _load();
         }
       } else {
-        _showToast(_errorMessage(e) ?? 'Failed to add note');
+        _showToast(userFacingMessage(e, context: 'Add note'));
       }
     } catch (e) {
-      _showToast('Failed: ${e.toString()}');
+      _showToast(userFacingMessage(e, context: 'Add note'));
     }
   }
 
   Future<void> _addPhoto() async {
+    if (!_isToday) {
+      _showToast('You can only add entries for today. Select today\'s date to add.');
+      return;
+    }
     final file = await _picker.pickImage(source: ImageSource.camera, imageQuality: 85);
     if (file == null || !mounted) return;
-    final path = file.path;
+    String path;
+    try {
+      path = await _persistPhotoPath(file.path);
+    } catch (e) {
+      path = file.path;
+    }
+    if (!mounted) return;
     try {
       await _repo.addPhoto(widget.projectId, _reportDate, path, sortOrder: _entries.length);
       if (mounted) {
@@ -183,10 +212,10 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
           _load();
         }
       } else {
-        _showToast(_errorMessage(e) ?? 'Failed to add photo');
+        _showToast(userFacingMessage(e, context: 'Add photo'));
       }
     } catch (e) {
-      _showToast('Failed: ${e.toString()}');
+      _showToast(userFacingMessage(e, context: 'Add photo'));
     }
   }
 
@@ -212,12 +241,22 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                     icon: const Icon(Icons.calendar_today),
                     label: Text(_reportDate),
                   ),
-                  const SizedBox(height: 24),
+                  if (!_isToday)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        'View only. You can only add entries for today.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
                         child: FilledButton.icon(
-                          onPressed: _addNote,
+                          onPressed: _isToday ? _addNote : null,
                           icon: const Icon(Icons.note_add),
                           label: const Text('Add note'),
                         ),
@@ -225,7 +264,7 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: FilledButton.tonalIcon(
-                          onPressed: _addPhoto,
+                          onPressed: _isToday ? _addPhoto : null,
                           icon: const Icon(Icons.add_a_photo),
                           label: const Text('Add photo'),
                         ),
@@ -236,11 +275,16 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                   if (_entries.isEmpty)
                     Padding(
                       padding: const EdgeInsets.all(24),
-                      child: Text(
-                        'No entries for this date. Add a note or photo.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'No entries for this date. Tap \'Add note\' or \'Add photo\' to add.',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
                     )
                   else
@@ -248,19 +292,65 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                       if (e.type == 'note') {
                         return Card(
                           margin: const EdgeInsets.only(bottom: 8),
-                          child: ListTile(
-                            leading: const Icon(Icons.note, color: Colors.amber),
-                            title: Text(e.content),
-                            subtitle: e.createdAt != null ? Text(_formatTime(e.createdAt!)) : null,
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.note_outlined, color: Theme.of(context).colorScheme.primary, size: 24),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(e.content, style: Theme.of(context).textTheme.bodyMedium),
+                                      if (e.createdAt != null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 4),
+                                          child: Text(
+                                            _formatTime(e.createdAt!),
+                                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       }
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          leading: _thumbnail(e.content),
-                          title: const Text('Photo'),
-                          subtitle: e.createdAt != null ? Text(_formatTime(e.createdAt!)) : null,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _thumbnail(e.content),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Photo', style: Theme.of(context).textTheme.bodyMedium),
+                                    if (e.createdAt != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text(
+                                          _formatTime(e.createdAt!),
+                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                              ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     }),
@@ -277,7 +367,7 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
         child: Image.file(File(pathOrUrl), width: 48, height: 48, fit: BoxFit.cover),
       );
     }
-    return const Icon(Icons.photo, color: Colors.teal, size: 40);
+    return Icon(Icons.photo_outlined, color: Theme.of(context).colorScheme.primary, size: 40);
   }
 
   String _formatTime(String iso) {

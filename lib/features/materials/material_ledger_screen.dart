@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import 'materials_repository.dart';
+import '../../core/errors/user_facing_messages.dart';
 import '../../core/storage/sync_queue_repository.dart';
 import '../../core/sync/sync_status_notifier.dart';
 
@@ -62,12 +63,14 @@ class _MaterialLedgerScreenState extends State<MaterialLedgerScreen> {
   void _showToast(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).clearSnackBars();
+    final theme = Theme.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+        content: Text(message, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.colorScheme.onPrimary)),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.deepOrange.shade700,
+        backgroundColor: theme.colorScheme.primary,
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
   }
@@ -176,10 +179,10 @@ class _MaterialLedgerScreenState extends State<MaterialLedgerScreen> {
           if (mounted) _showToast('Saved offline. Will sync when online.');
         }
       } else {
-        if (mounted) _showToast(e.response?.data is Map ? (e.response?.data as Map)['detail']?.toString() ?? 'Failed' : e.message ?? 'Failed');
+        if (mounted) _showToast(userFacingMessage(e, context: 'Add entry'));
       }
     } catch (e) {
-      if (mounted) _showToast('Failed: $e');
+      if (mounted) _showToast(userFacingMessage(e, context: 'Add entry'));
     } finally {
       if (mounted) setState(() => _addingEntry = false);
     }

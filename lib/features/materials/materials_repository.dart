@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
+import 'package:drift/drift.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/storage/app_database.dart';
 
 /// Fixed units; must match backend MATERIAL_UNITS.
 const List<String> materialUnits = [
@@ -95,13 +99,13 @@ class LedgerEntry {
 }
 
 class MaterialsRepository {
-  MaterialsRepository() : _dio = ApiClient.instance.dio;
+  MaterialsRepository({AppDatabase? db}) : _db = db ?? AppDatabase(), _dio = ApiClient.instance.dio;
+  final AppDatabase _db;
   final Dio _dio;
 
   Future<List<MasterMaterial>> listMasterMaterials() async {
-    final res = await _dio.get<List<dynamic>>('/api/v1/master-materials');
-    final list = res.data ?? [];
-    return list.map((e) => MasterMaterial.fromJson(e as Map<String, dynamic>)).toList();
+    final rows = await _db.select(_db.cacheMasterMaterials).get();
+    return rows.map((r) => MasterMaterial.fromJson(jsonDecode(r.payloadJson) as Map<String, dynamic>)).toList();
   }
 
   Future<MaterialWithBalance> createMaterial(
@@ -127,15 +131,61 @@ class MaterialsRepository {
   }
 
   Future<List<MaterialWithBalance>> listMaterials(String projectId) async {
-    final res = await _dio.get<List<dynamic>>('/api/v1/materials/$projectId/materials');
-    final list = res.data ?? [];
-    return list.map((e) => MaterialWithBalance.fromJson(e as Map<String, dynamic>)).toList();
+    try {
+      final res = await _dio.get<List<dynamic>>('/api/v1/materials/$projectId/materials');
+      final list = res.data ?? [];
+      final materials = <MaterialWithBalance>[];
+      for (final e in list) {
+        final item = e as Map<String, dynamic>;
+        final id = item['id'] as String?;
+        if (id == null) continue;
+        final updatedAt = item['updated_at'] as String? ?? item['created_at'] as String?;
+        final json = jsonEncode(item);
+        await _db.into(_db.cacheMaterials).insert(
+          CacheMaterialsCompanion.insert(id: id, projectId: projectId, payloadJson: json, updatedAt: Value(updatedAt)),
+          onConflict: DoUpdate((old) => CacheMaterialsCompanion(payloadJson: Value(json), updatedAt: Value(updatedAt))),
+        );
+        materials.add(MaterialWithBalance.fromJson(item));
+      }
+      return materials;
+    } on DioException catch (e) {
+      final isOffline = e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout ||
+          (e.type == DioExceptionType.unknown && e.response == null);
+      if (!isOffline) rethrow;
+    }
+    final rows = await (_db.select(_db.cacheMaterials)..where((t) => t.projectId.equals(projectId))).get();
+    return rows.map((r) => MaterialWithBalance.fromJson(jsonDecode(r.payloadJson) as Map<String, dynamic>)).toList();
   }
 
   Future<List<LedgerEntry>> listLedger(String projectId, String materialId) async {
-    final res = await _dio.get<List<dynamic>>('/api/v1/materials/$projectId/materials/$materialId/ledger');
-    final list = res.data ?? [];
-    return list.map((e) => LedgerEntry.fromJson(e as Map<String, dynamic>)).toList();
+    try {
+      final res = await _dio.get<List<dynamic>>('/api/v1/materials/$projectId/materials/$materialId/ledger');
+      final list = res.data ?? [];
+      final entries = <LedgerEntry>[];
+      for (final e in list) {
+        final item = e as Map<String, dynamic>;
+        final id = item['id'] as String?;
+        if (id == null) continue;
+        final updatedAt = item['updated_at'] as String? ?? item['created_at'] as String?;
+        final json = jsonEncode(item);
+        await _db.into(_db.cacheMaterialLedger).insert(
+          CacheMaterialLedgerCompanion.insert(id: id, projectId: projectId, materialId: materialId, payloadJson: json, updatedAt: Value(updatedAt)),
+          onConflict: DoUpdate((old) => CacheMaterialLedgerCompanion(payloadJson: Value(json), updatedAt: Value(updatedAt))),
+        );
+        entries.add(LedgerEntry.fromJson(item));
+      }
+      return entries;
+    } on DioException catch (e) {
+      final isOffline = e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout ||
+          (e.type == DioExceptionType.unknown && e.response == null);
+      if (!isOffline) rethrow;
+    }
+    final rows = await (_db.select(_db.cacheMaterialLedger)
+          ..where((t) => Expression.and([t.projectId.equals(projectId), t.materialId.equals(materialId)])))
+        .get();
+    return rows.map((r) => LedgerEntry.fromJson(jsonDecode(r.payloadJson) as Map<String, dynamic>)).toList();
   }
 
   Future<LedgerEntry> addLedgerEntry(

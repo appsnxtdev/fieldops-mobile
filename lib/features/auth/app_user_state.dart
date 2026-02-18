@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../core/errors/user_facing_messages.dart';
 import 'tenant_repository.dart';
 import 'user_repository.dart';
 
@@ -29,7 +30,7 @@ class AppUserState extends ChangeNotifier {
       _tenant = results[1] as Tenant;
       _loaded = true;
     } catch (e) {
-      _error = e.toString();
+      _error = userFacingMessage(e);
     }
     notifyListeners();
   }

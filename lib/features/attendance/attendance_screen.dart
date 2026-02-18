@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import '../auth/app_user_state.dart';
 import '../dashboard/projects_repository.dart';
 import 'attendance_repository.dart';
+import '../../core/errors/user_facing_messages.dart';
 import '../../core/storage/sync_queue_repository.dart';
 import '../../core/sync/sync_status_notifier.dart';
 
@@ -94,26 +95,26 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     return dist <= _radiusMeters;
   }
 
-  void _showToast(String message) {
+  void _showToast(String message, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).clearSnackBars();
+    final theme = Theme.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Text(
             message,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Colors.white,
+              color: theme.colorScheme.onPrimary,
             ),
           ),
         ),
         duration: _snackDuration,
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.deepOrange.shade700,
-        elevation: 12,
+        backgroundColor: isError ? theme.colorScheme.error : theme.colorScheme.primary,
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
@@ -149,15 +150,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     try {
       position = await _getLocation();
     } on TimeoutException catch (_) {
-      _showToast('Location timed out. Emulator: set mock location (⋮ → Location). Device: ensure GPS/location is on.');
+      _showToast('Location timed out. Emulator: set mock location (⋮ → Location). Device: ensure GPS/location is on.', isError: true);
       return;
     } catch (e) {
-      final msg = e.toString().replaceFirst(RegExp(r'^Exception:?\s*'), '');
-      _showToast('Location error: $msg');
+      _showToast('Could not get location. Try again.', isError: true);
       return;
     }
     if (position == null) {
-      _showToast('Location required. Turn on device location and allow permission for this app, then try again.');
+      _showToast('Location required. Turn on device location and allow permission for this app, then try again.', isError: true);
       return;
     }
     _showToast('Checking distance from project…');
@@ -165,18 +165,18 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     try {
       withinRadius = await _isWithinProjectRadius(position);
     } catch (e) {
-      _showToast('Could not verify project location. Try again.');
+      _showToast('Could not verify project location. Try again.', isError: true);
       return;
     }
     if (!mounted) return;
     if (!withinRadius) {
-      _showToast('You must be within 100m of the project location to check in. Move closer and try again.');
+      _showToast('You must be within 100m of the project location to check in. Move closer and try again.', isError: true);
       return;
     }
     _showToast('Opening camera for selfie…');
     final selfiePath = await _captureSelfie();
     if (selfiePath == null || !mounted) {
-      _showToast('Selfie is required for check-in.');
+      _showToast('Selfie is required for check-in.', isError: true);
       return;
     }
     try {
@@ -201,10 +201,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           _load();
         }
       } else {
-        _showToast(e.response?.data?['detail']?.toString() ?? e.message ?? 'Check-in failed');
+        _showToast(userFacingMessage(e, context: 'Check-in'), isError: true);
       }
     } catch (e) {
-      _showToast('Check-in failed: ${e.toString()}');
+      _showToast(userFacingMessage(e, context: 'Check-in'), isError: true);
     }
   }
 
@@ -214,15 +214,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     try {
       position = await _getLocation();
     } on TimeoutException catch (_) {
-      _showToast('Location timed out. Emulator: set mock location (⋮ → Location). Device: ensure GPS/location is on.');
+      _showToast('Location timed out. Emulator: set mock location (⋮ → Location). Device: ensure GPS/location is on.', isError: true);
       return;
     } catch (e) {
-      final msg = e.toString().replaceFirst(RegExp(r'^Exception:?\s*'), '');
-      _showToast('Location error: $msg');
+      _showToast('Could not get location. Try again.', isError: true);
       return;
     }
     if (position == null) {
-      _showToast('Location required. Turn on device location and allow permission for this app, then try again.');
+      _showToast('Location required. Turn on device location and allow permission for this app, then try again.', isError: true);
       return;
     }
     _showToast('Checking distance from project…');
@@ -230,18 +229,18 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     try {
       withinRadius = await _isWithinProjectRadius(position);
     } catch (e) {
-      _showToast('Could not verify project location. Try again.');
+      _showToast('Could not verify project location. Try again.', isError: true);
       return;
     }
     if (!mounted) return;
     if (!withinRadius) {
-      _showToast('You must be within 100m of the project location to check out. Move closer and try again.');
+      _showToast('You must be within 100m of the project location to check out. Move closer and try again.', isError: true);
       return;
     }
     _showToast('Opening camera for selfie…');
     final selfiePath = await _captureSelfie();
     if (selfiePath == null || !mounted) {
-      _showToast('Selfie is required for check-out.');
+      _showToast('Selfie is required for check-out.', isError: true);
       return;
     }
     try {
@@ -266,10 +265,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           _load();
         }
       } else {
-        _showToast(e.response?.data?['detail']?.toString() ?? e.message ?? 'Check-out failed');
+        _showToast(userFacingMessage(e, context: 'Check-out'), isError: true);
       }
     } catch (e) {
-      _showToast('Check-out failed: ${e.toString()}');
+      _showToast(userFacingMessage(e, context: 'Check-out'), isError: true);
     }
   }
 
@@ -301,13 +300,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   if (myRecord != null) ...[
                     if (myRecord.checkInAt != null)
                       ListTile(
-                        leading: const Icon(Icons.login, color: Colors.green),
+                        leading: Icon(Icons.login, color: Theme.of(context).colorScheme.primary),
                         title: const Text('Checked in'),
                         subtitle: Text(_formatTime(myRecord.checkInAt!)),
                       ),
                     if (myRecord.checkOutAt != null)
                       ListTile(
-                        leading: const Icon(Icons.logout, color: Colors.orange),
+                        leading: Icon(Icons.logout, color: Theme.of(context).colorScheme.secondary),
                         title: const Text('Checked out'),
                         subtitle: Text(_formatTime(myRecord.checkOutAt!)),
                       ),
@@ -333,26 +332,52 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  Text('Today', style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    "Who's on site today",
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
                   const SizedBox(height: 8),
                   if (_list.isEmpty)
                     Padding(
                       padding: const EdgeInsets.all(24),
-                      child: Text(
-                        'No attendance recorded for today.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'No one checked in yet today.',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Check-in requires location and a selfie.',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
                     )
                   else
-                    ..._list.map((r) => ListTile(
-                          leading: Icon(
-                            r.checkOutAt != null ? Icons.check_circle : Icons.radio_button_checked,
-                            color: Theme.of(context).colorScheme.primary,
+                    ..._list.map((r) => Card(
+                          child: ListTile(
+                            leading: Icon(
+                              r.checkOutAt != null ? Icons.check_circle : Icons.radio_button_checked,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            title: Text(r.displayName),
+                            subtitle: Text(
+                              r.checkInAt != null
+                                  ? (r.checkOutAt != null
+                                      ? 'In ${_formatTime(r.checkInAt!)} · Out ${_formatTime(r.checkOutAt!)}'
+                                      : 'In ${_formatTime(r.checkInAt!)}')
+                                  : '—',
+                            ),
                           ),
-                          title: Text(r.checkInAt != null ? 'In ${_formatTime(r.checkInAt!)}' : '—'),
-                          subtitle: r.checkOutAt != null ? Text('Out ${_formatTime(r.checkOutAt!)}') : null,
                         )),
                 ],
               ),

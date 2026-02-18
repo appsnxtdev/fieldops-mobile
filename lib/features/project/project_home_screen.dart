@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../dashboard/projects_repository.dart';
+import '../../core/theme/app_colors.dart';
 
 class ProjectHomeScreen extends StatefulWidget {
   const ProjectHomeScreen({super.key, required this.projectId, this.project});
@@ -15,7 +16,6 @@ class ProjectHomeScreen extends StatefulWidget {
 
 class _ProjectHomeScreenState extends State<ProjectHomeScreen> {
   Project? _project;
-  String? _projectRole;
   bool _loading = true;
 
   @override
@@ -27,7 +27,6 @@ class _ProjectHomeScreenState extends State<ProjectHomeScreen> {
     } else {
       _fetchProject();
     }
-    _fetchMyRole();
   }
 
   Future<void> _fetchProject() async {
@@ -38,11 +37,6 @@ class _ProjectHomeScreenState extends State<ProjectHomeScreen> {
         _loading = false;
       });
     }
-  }
-
-  Future<void> _fetchMyRole() async {
-    final role = await ProjectsRepository().getMyProjectAccess(widget.projectId);
-    if (mounted) setState(() => _projectRole = role);
   }
 
   @override
@@ -59,8 +53,7 @@ class _ProjectHomeScreenState extends State<ProjectHomeScreen> {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
-    final name = _project?.name ?? 'Project';
-    final roleLabel = _projectRole != null ? _projectRole!.toUpperCase() : '—';
+    final name = _project?.name ?? 'Site';
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -71,57 +64,41 @@ class _ProjectHomeScreenState extends State<ProjectHomeScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Card(
-              margin: const EdgeInsets.only(bottom: 16),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  child: Icon(Icons.person, color: Theme.of(context).colorScheme.onPrimaryContainer),
-                ),
-                title: const Text('Your role'),
-                subtitle: Text(roleLabel, style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.primary,
-                )),
-              ),
-            ),
-            Expanded(
-              child: GridView.count(
+        child: GridView.count(
           crossAxisCount: 2,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 1.1,
+          childAspectRatio: 1.05,
           children: [
             _NavTile(
               icon: Icons.fingerprint,
-              label: 'Attendance',
+              label: 'Mark attendance',
+              subtitle: 'Check in / Check out',
               onTap: () => context.go('/project/${widget.projectId}/attendance'),
             ),
             _NavTile(
-              icon: Icons.account_balance_wallet,
-              label: 'Wallet',
-              onTap: () => context.go('/project/${widget.projectId}/wallet'),
-            ),
-            _NavTile(
               icon: Icons.assignment,
-              label: 'Daily Report',
+              label: 'Daily report',
+              subtitle: 'Add note or photo for the day',
               onTap: () => context.go('/project/${widget.projectId}/daily-report'),
             ),
             _NavTile(
               icon: Icons.task_alt,
               label: 'Tasks',
+              subtitle: 'View and update your tasks',
               onTap: () => context.go('/project/${widget.projectId}/tasks'),
             ),
             _NavTile(
               icon: Icons.inventory_2,
               label: 'Materials',
+              subtitle: 'Record material in or out',
               onTap: () => context.go('/project/${widget.projectId}/materials'),
             ),
-          ],
-        ),
+            _NavTile(
+              icon: Icons.account_balance_wallet,
+              label: 'Site wallet',
+              subtitle: 'View balance · Add money',
+              onTap: () => context.go('/project/${widget.projectId}/wallet'),
             ),
           ],
         ),
@@ -131,10 +108,16 @@ class _ProjectHomeScreenState extends State<ProjectHomeScreen> {
 }
 
 class _NavTile extends StatelessWidget {
-  const _NavTile({required this.icon, required this.label, required this.onTap});
+  const _NavTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.subtitle,
+  });
 
   final IconData icon;
   final String label;
+  final String? subtitle;
   final VoidCallback onTap;
 
   @override
@@ -142,19 +125,29 @@ class _NavTile extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppColors.radiusLg),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 40, color: Theme.of(context).colorScheme.primary),
+              Icon(icon, size: 44, color: Theme.of(context).colorScheme.primary),
               const SizedBox(height: 8),
               Text(
                 label,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelLarge,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
               ),
+              if (subtitle != null && subtitle!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  subtitle!,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
             ],
           ),
         ),

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../auth/app_user_state.dart';
 import '../dashboard/projects_repository.dart';
 import 'tasks_repository.dart';
+import '../../core/errors/user_facing_messages.dart';
 import '../../core/storage/sync_queue_repository.dart';
 import '../../core/sync/sync_status_notifier.dart';
 
@@ -40,7 +41,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   void initState() {
     super.initState();
     _task = widget.task;
-    if (_task != null) _loading = false;
     _load();
   }
 
@@ -53,13 +53,17 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   Future<void> _load() async {
     final role = await _projectsRepo.getMyProjectAccess(widget.projectId);
     if (_task == null) {
-      setState(() => _loading = true);
       final t = await _repo.getTask(widget.projectId, widget.taskId);
-      if (mounted) setState(() { _task = t; _loading = false; });
+      if (mounted) setState(() => _task = t);
     }
     final statuses = await _repo.listStatuses(widget.projectId);
     final updates = await _repo.listTaskUpdates(widget.projectId, widget.taskId);
-    if (mounted) setState(() { _projectRole = role; _statuses = statuses; _updates = updates; });
+    if (mounted) setState(() {
+      _projectRole = role;
+      _statuses = statuses;
+      _updates = updates;
+      _loading = false;
+    });
   }
 
   Future<void> _addNote() async {
@@ -75,11 +79,11 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     } on DioException catch (e) {
       if (mounted) {
         setState(() => _addingNote = false);
-        _showToast(e.response?.data is Map ? (e.response?.data as Map)['detail']?.toString() ?? 'Failed' : e.message ?? 'Failed');
+        _showToast(userFacingMessage(e, context: 'Add note'));
       }
     } catch (e) {
       if (mounted) setState(() => _addingNote = false);
-      _showToast('Failed: $e');
+      _showToast(userFacingMessage(e, context: 'Add note'));
     }
   }
 
@@ -90,15 +94,27 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
             e.type == DioExceptionType.unknown);
   }
 
+  static String _formatDueAt(String? dueAt) {
+    if (dueAt == null || dueAt.isEmpty) return '—';
+    try {
+      final dt = DateTime.parse(dueAt);
+      return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return dueAt;
+    }
+  }
+
   void _showToast(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).clearSnackBars();
+    final theme = Theme.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+        content: Text(message, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.colorScheme.onPrimary)),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.deepOrange.shade700,
+        backgroundColor: theme.colorScheme.primary,
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
   }
@@ -190,6 +206,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 description: description,
                 statusId: selectedStatusId,
                 assigneeId: task.assigneeId,
+                assigneeName: task.assigneeName,
                 createdBy: task.createdBy,
                 dueAt: task.dueAt,
                 createdAt: task.createdAt,
@@ -197,10 +214,10 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
               ));
         }
       } else {
-        _showToast(e.response?.data is Map ? (e.response?.data as Map)['detail']?.toString() ?? 'Failed' : e.message ?? 'Failed');
+        _showToast(userFacingMessage(e, context: 'Update task'));
       }
     } catch (e) {
-      _showToast('Failed: $e');
+      _showToast(userFacingMessage(e, context: 'Update task'));
     }
   }
 
@@ -236,6 +253,18 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
             leading: const Icon(Icons.flag),
             title: const Text('Status'),
             subtitle: Text(statusName),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.person_outline),
+            title: const Text('Assignee'),
+            subtitle: Text(task.assigneeName != null && task.assigneeName!.isNotEmpty ? task.assigneeName! : 'Unassigned'),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.calendar_today_outlined),
+            title: const Text('Due date'),
+            subtitle: Text(_formatDueAt(task.dueAt)),
           ),
           if (task.description != null && task.description!.isNotEmpty) ...[
             const SizedBox(height: 8),

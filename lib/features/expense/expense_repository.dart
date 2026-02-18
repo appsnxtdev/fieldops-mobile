@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:drift/drift.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/storage/app_database.dart';
 
 class ExpenseTransaction {
   const ExpenseTransaction({
@@ -53,12 +56,47 @@ class WalletData {
 }
 
 class ExpenseRepository {
-  ExpenseRepository() : _dio = ApiClient.instance.dio;
+  ExpenseRepository({AppDatabase? db}) : _db = db ?? AppDatabase(), _dio = ApiClient.instance.dio;
+  final AppDatabase _db;
   final Dio _dio;
 
   Future<WalletData> getWallet(String projectId) async {
-    final res = await _dio.get<Map<String, dynamic>>('/api/v1/expense/$projectId');
-    return WalletData.fromJson(res.data!);
+    try {
+      final res = await _dio.get<Map<String, dynamic>>('/api/v1/expense/$projectId');
+      final data = res.data;
+      if (data != null) {
+        final balance = (data['balance'] as num?)?.toDouble() ?? 0.0;
+        final updatedAt = data['updated_at'] as String? ?? DateTime.now().toUtc().toIso8601String();
+        await _db.into(_db.cacheWalletBalance).insert(
+          CacheWalletBalanceCompanion.insert(projectId: projectId, balance: balance, updatedAt: Value(updatedAt)),
+          onConflict: DoUpdate((old) => CacheWalletBalanceCompanion(balance: Value(balance), updatedAt: Value(updatedAt))),
+        );
+        final list = data['transactions'] as List<dynamic>? ?? [];
+        for (final e in list) {
+          final item = e as Map<String, dynamic>;
+          final id = item['id'] as String?;
+          if (id == null) continue;
+          final updatedAtTx = item['updated_at'] as String? ?? item['created_at'] as String?;
+          final json = jsonEncode(item);
+          await _db.into(_db.cacheExpenseTransactions).insert(
+            CacheExpenseTransactionsCompanion.insert(id: id, projectId: projectId, payloadJson: json, updatedAt: Value(updatedAtTx)),
+            onConflict: DoUpdate((old) => CacheExpenseTransactionsCompanion(payloadJson: Value(json), updatedAt: Value(updatedAtTx))),
+          );
+        }
+        final transactions = list.map((e) => ExpenseTransaction.fromJson(e as Map<String, dynamic>)).toList();
+        return WalletData(balance: balance, transactions: transactions);
+      }
+    } on DioException catch (e) {
+      final isOffline = e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout ||
+          (e.type == DioExceptionType.unknown && e.response == null);
+      if (!isOffline) rethrow;
+    }
+    final balanceRow = await (_db.select(_db.cacheWalletBalance)..where((t) => t.projectId.equals(projectId))).getSingleOrNull();
+    final balance = balanceRow?.balance ?? 0.0;
+    final txRows = await (_db.select(_db.cacheExpenseTransactions)..where((t) => t.projectId.equals(projectId))..orderBy([(t) => OrderingTerm.desc(t.updatedAt)])).get();
+    final transactions = txRows.map((r) => ExpenseTransaction.fromJson(jsonDecode(r.payloadJson) as Map<String, dynamic>)).toList();
+    return WalletData(balance: balance, transactions: transactions);
   }
 
   Future<ExpenseTransaction> addCredit(String projectId, double amount, {String? notes}) async {

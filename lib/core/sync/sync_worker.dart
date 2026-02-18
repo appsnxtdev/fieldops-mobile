@@ -3,18 +3,22 @@ import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../storage/sync_queue_repository.dart';
+import 'pull_service.dart';
 
-/// Processes pending sync queue when online. Register handlers per kind (e.g. expense_credit in Phase 5).
+/// Processes pending sync queue when online; then runs full pull. Register handlers per kind.
 class SyncWorker {
   SyncWorker({
     SyncQueueRepository? repo,
+    PullService? pullService,
     Connectivity? connectivity,
     Map<String, Future<bool> Function(Map<String, dynamic> payload)>? handlers,
   })  : _repo = repo ?? SyncQueueRepository(),
+        _pullService = pullService ?? PullService(),
         _connectivity = connectivity ?? Connectivity(),
         _handlers = Map<String, Future<bool> Function(Map<String, dynamic> payload)>.from(handlers ?? {});
 
   final SyncQueueRepository _repo;
+  final PullService _pullService;
   final Connectivity _connectivity;
   final Map<String, Future<bool> Function(Map<String, dynamic> payload)> _handlers;
 
@@ -22,16 +26,17 @@ class SyncWorker {
     _handlers[kind] = handler;
   }
 
-  /// Call when app has connectivity; processes pending items in order. Stops on first 4xx or unknown kind.
-  Future<void> run() async {
+  Future<bool> get isOnline async {
     final result = await _connectivity.checkConnectivity();
     final list = result is List
         ? List<ConnectivityResult>.from(result as List)
         : <ConnectivityResult>[result];
-    final isOnline = list.any((r) => r != ConnectivityResult.none);
-    if (!isOnline) {
-      return;
-    }
+    return list.any((r) => r != ConnectivityResult.none);
+  }
+
+  /// Push pending queue then full pull when online.
+  Future<void> run() async {
+    if (!await isOnline) return;
 
     final pending = await _repo.getPending();
     for (final item in pending) {
@@ -42,9 +47,7 @@ class SyncWorker {
         continue;
       }
       final handler = _handlers[item.kind];
-      if (handler == null) {
-        break;
-      }
+      if (handler == null) break;
       bool success = false;
       try {
         success = await handler(payload);
@@ -57,5 +60,9 @@ class SyncWorker {
         break;
       }
     }
+
+    try {
+      await _pullService.runFullPull();
+    } catch (_) {}
   }
 }

@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/storage/app_database.dart';
 
 class AttendanceRecord {
   const AttendanceRecord({
@@ -18,6 +20,8 @@ class AttendanceRecord {
     this.checkInLng,
     this.checkOutLat,
     this.checkOutLng,
+    this.userFullName,
+    this.userEmail,
   });
   final String id;
   final String projectId;
@@ -31,6 +35,14 @@ class AttendanceRecord {
   final double? checkInLng;
   final double? checkOutLat;
   final double? checkOutLng;
+  final String? userFullName;
+  final String? userEmail;
+
+  String get displayName {
+    if (userFullName != null && userFullName!.trim().isNotEmpty) return userFullName!;
+    if (userEmail != null && userEmail!.trim().isNotEmpty) return userEmail!;
+    return userId.length > 8 ? '${userId.substring(0, 8)}…' : userId;
+  }
 
   static AttendanceRecord fromJson(Map<String, dynamic> json) {
     return AttendanceRecord(
@@ -46,12 +58,15 @@ class AttendanceRecord {
       checkInLng: (json['check_in_lng'] as num?)?.toDouble(),
       checkOutLat: (json['check_out_lat'] as num?)?.toDouble(),
       checkOutLng: (json['check_out_lng'] as num?)?.toDouble(),
+      userFullName: json['user_full_name'] as String?,
+      userEmail: json['user_email'] as String?,
     );
   }
 }
 
 class AttendanceRepository {
-  AttendanceRepository() : _dio = ApiClient.instance.dio;
+  AttendanceRepository({AppDatabase? db}) : _db = db ?? AppDatabase(), _dio = ApiClient.instance.dio;
+  final AppDatabase _db;
   final Dio _dio;
 
   Future<AttendanceRecord> checkIn(
@@ -103,11 +118,26 @@ class AttendanceRepository {
   }
 
   Future<List<AttendanceRecord>> listAttendance(String projectId, String date) async {
-    final res = await _dio.get<List<dynamic>>(
-      '/api/v1/attendance/$projectId',
-      queryParameters: {'date': date},
-    );
-    final list = res.data ?? [];
-    return list.map((e) => AttendanceRecord.fromJson(e as Map<String, dynamic>)).toList();
+    try {
+      final res = await _dio.get<List<dynamic>>(
+        '/api/v1/attendance/$projectId',
+        queryParameters: {'date': date},
+      );
+      final list = (res.data ?? [])
+          .map((e) => AttendanceRecord.fromJson(e as Map<String, dynamic>))
+          .toList();
+      return list;
+    } on Exception {
+      // Offline or error: fall back to cache
+    }
+    final rows = await (_db.select(_db.cacheAttendance)
+          ..where((t) => t.projectId.equals(projectId)))
+        .get();
+    final list = <AttendanceRecord>[];
+    for (final r in rows) {
+      final m = jsonDecode(r.payloadJson) as Map<String, dynamic>;
+      if (m['date'] == date) list.add(AttendanceRecord.fromJson(m));
+    }
+    return list;
   }
 }

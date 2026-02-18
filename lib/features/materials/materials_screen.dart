@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/errors/user_facing_messages.dart';
 import 'materials_repository.dart';
 
 class MaterialsScreen extends StatefulWidget {
@@ -159,7 +160,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), behavior: SnackBarBehavior.floating),
+          SnackBar(content: Text(userFacingMessage(e, context: 'Add material')), behavior: SnackBarBehavior.floating),
         );
       }
     }
@@ -187,7 +188,18 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
           : RefreshIndicator(
               onRefresh: _load,
               child: _materials.isEmpty
-                  ? const Center(child: Text('No materials.'))
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'No materials yet. Tap + to add from catalog or add a custom material.',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                    )
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: _materials.length,

@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import 'expense_repository.dart';
+import '../../core/errors/user_facing_messages.dart';
 import '../../core/storage/sync_queue_repository.dart';
 import '../../core/sync/sync_status_notifier.dart';
 
@@ -16,6 +17,8 @@ class WalletScreen extends StatefulWidget {
   @override
   State<WalletScreen> createState() => _WalletScreenState();
 }
+
+const String _currencySymbol = '₹';
 
 class _WalletScreenState extends State<WalletScreen> {
   final _repo = ExpenseRepository();
@@ -42,7 +45,7 @@ class _WalletScreenState extends State<WalletScreen> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _error = e.toString());
+        setState(() => _error = userFacingMessage(e));
       }
     } finally {
       if (mounted) {
@@ -119,7 +122,7 @@ class _WalletScreenState extends State<WalletScreen> {
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Failed')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userFacingMessage(e, context: 'Add money'))));
         }
       }
     }
@@ -212,7 +215,7 @@ class _WalletScreenState extends State<WalletScreen> {
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Failed')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userFacingMessage(e, context: 'Spend money'))));
         }
       }
     }
@@ -253,7 +256,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       Text('Balance', style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 4),
                       Text(
-                        _wallet != null ? '₹${_wallet!.balance.toStringAsFixed(2)}' : '—',
+                        _wallet != null ? '$_currencySymbol${_wallet!.balance.toStringAsFixed(2)}' : '—',
                         style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: Theme.of(context).colorScheme.primary,
@@ -286,25 +289,41 @@ class _WalletScreenState extends State<WalletScreen> {
                         Padding(
                           padding: const EdgeInsets.all(24),
                           child: Text(
-                            'No transactions yet.',
+                            'No transactions yet. Add money or record spend with receipt.',
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
+                            textAlign: TextAlign.center,
                           ),
                         )
                       else
-                        ...(_wallet!.transactions.take(20).map((t) => ListTile(
-                              contentPadding: EdgeInsets.zero,
+                        ...(_wallet!.transactions.take(20).map((t) {
+                          final isCredit = t.type == 'credit';
+                          final color = isCredit ? const Color(0xFF2D8A6E) : Theme.of(context).colorScheme.error;
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: color.withValues(alpha: 0.15),
+                                child: Icon(
+                                  isCredit ? Icons.add : Icons.remove,
+                                  color: color,
+                                  size: 22,
+                                ),
+                              ),
                               title: Text(
-                                t.type == 'credit' ? 'Added ₹${t.amount.toStringAsFixed(2)}' : 'Spent ₹${t.amount.toStringAsFixed(2)}',
+                                isCredit ? 'Added $_currencySymbol${t.amount.toStringAsFixed(2)}' : 'Spent $_currencySymbol${t.amount.toStringAsFixed(2)}',
                                 style: TextStyle(
-                                  color: t.type == 'credit' ? Colors.green.shade700 : Colors.red.shade700,
+                                  fontWeight: FontWeight.w600,
+                                  color: color,
                                 ),
                               ),
                               subtitle: t.notes != null && t.notes!.isNotEmpty
-                                  ? Text(t.notes!)
-                                  : (t.createdAt != null ? Text(t.createdAt!) : null),
-                            ))),
+                                  ? Text(t.notes!, style: Theme.of(context).textTheme.bodySmall)
+                                  : (t.createdAt != null ? Text(t.createdAt!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)) : null),
+                            ),
+                          );
+                        })),
                     ],
                   ),
                 ),

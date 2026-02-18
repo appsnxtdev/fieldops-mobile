@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -27,6 +28,7 @@ class App extends StatelessWidget {
     final syncRepo = SyncQueueRepository();
     final syncWorker = SyncWorker(repo: syncRepo);
     final syncStatus = SyncStatusNotifier(repo: syncRepo);
+    syncStatus.startConnectivityListening();
     _registerExpenseSyncHandlers(syncWorker);
     _registerAttendanceSyncHandlers(syncWorker);
     _registerDailyReportSyncHandlers(syncWorker);
@@ -77,24 +79,35 @@ class _SyncTriggerWidgetState extends State<_SyncTriggerWidget> with WidgetsBind
     WidgetsBinding.instance.addObserver(this);
     _runSync();
     _connectivitySubscription = _connectivity.onConnectivityChanged.listen((_) => _runSync());
+    _dailyTimer = Timer.periodic(const Duration(hours: 24), (_) async {
+      if (await widget.syncWorker.isOnline) _runSync();
+    });
+    _pendingSyncTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
+      await widget.syncStatus.refresh();
+      if (widget.syncStatus.isOnline && widget.syncStatus.pendingCount > 0) {
+        await _runSync();
+      }
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _connectivitySubscription.cancel();
+    _dailyTimer?.cancel();
+    _pendingSyncTimer?.cancel();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _runSync();
-    }
+    if (state == AppLifecycleState.resumed) _runSync();
   }
 
   final _connectivity = Connectivity();
   dynamic _connectivitySubscription;
+  Timer? _dailyTimer;
+  Timer? _pendingSyncTimer;
 
   Future<void> _runSync() async {
     await widget.syncWorker.run();

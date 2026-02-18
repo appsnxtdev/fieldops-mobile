@@ -17,6 +17,7 @@ import '../../features/project/project_placeholder_screen.dart';
 import '../../features/tasks/task_detail_screen.dart';
 import '../../features/tasks/tasks_repository.dart';
 import '../../features/tasks/tasks_screen.dart';
+import '../../features/sync/pending_sync_screen.dart';
 
 GoRouter createAppRouter() {
   final router = GoRouter(
@@ -37,6 +38,10 @@ GoRouter createAppRouter() {
       GoRoute(
         path: '/dashboard',
         builder: (context, state) => const DashboardScreen(),
+      ),
+      GoRoute(
+        path: '/pending-sync',
+        builder: (context, state) => const PendingSyncScreen(),
       ),
       GoRoute(
         path: '/project/:id',
