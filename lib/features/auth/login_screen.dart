@@ -82,7 +82,8 @@ class _LoginScreenState extends State<LoginScreen> {
         await _tokenStorage.writeUserEmail(_emailController.text.trim());
         if (mounted) {
           context.go('/dashboard');
-          context.read<SyncWorker>().run();
+          // Run sync async so tasks & materials download in background without blocking UI
+          Future.microtask(() => context.read<SyncWorker>().run());
         }
       }
     } on AuthException catch (e) {

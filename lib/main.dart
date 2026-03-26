@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -8,7 +9,12 @@ import 'core/router/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env', isOptional: true);
+  try {
+    final envStr = await rootBundle.loadString('.env');
+    dotenv.testLoad(fileInput: envStr);
+  } catch (_) {
+    // .env missing or invalid; fall back to --dart-define in release
+  }
   final supabaseUrl = AppConfig.supabaseUrl;
   final supabaseAnonKey = AppConfig.supabaseAnonKey;
   if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {

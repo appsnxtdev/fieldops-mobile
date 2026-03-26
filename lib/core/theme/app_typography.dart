@@ -1,46 +1,61 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-/// Typography for FieldOps. Simple, high contrast, readable.
+/// Typography for FieldOps. Inter font, finance-mobile styles; high contrast for readability.
 class AppTypography {
   AppTypography._();
 
   static TextTheme textTheme(Color onSurface) {
     return TextTheme(
-      displayLarge: TextStyle(
-        fontSize: 28,
-        fontWeight: FontWeight.w600,
+      displayLarge: GoogleFonts.inter(
         color: onSurface,
+        fontSize: 40,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -1,
+      ),
+      displayMedium: GoogleFonts.inter(
+        color: onSurface,
+        fontSize: 32,
+        fontWeight: FontWeight.w700,
         letterSpacing: -0.5,
       ),
-      headlineMedium: TextStyle(
+      headlineLarge: GoogleFonts.inter(
+        color: onSurface,
+        fontSize: 28,
+        fontWeight: FontWeight.w600,
+      ),
+      headlineMedium: GoogleFonts.inter(
+        color: onSurface,
         fontSize: 22,
         fontWeight: FontWeight.w600,
-        color: onSurface,
       ),
-      titleLarge: TextStyle(
+      titleLarge: GoogleFonts.inter(
+        color: onSurface,
         fontSize: 18,
         fontWeight: FontWeight.w600,
-        color: onSurface,
       ),
-      titleMedium: TextStyle(
+      titleMedium: GoogleFonts.inter(
+        color: onSurface,
         fontSize: 16,
         fontWeight: FontWeight.w500,
-        color: onSurface,
       ),
-      bodyLarge: TextStyle(
+      bodyLarge: GoogleFonts.inter(
+        color: onSurface,
         fontSize: 16,
-        fontWeight: FontWeight.normal,
-        color: onSurface,
       ),
-      bodyMedium: TextStyle(
+      bodyMedium: GoogleFonts.inter(
+        color: onSurface,
         fontSize: 14,
-        fontWeight: FontWeight.normal,
-        color: onSurface,
       ),
-      labelLarge: TextStyle(
+      bodySmall: GoogleFonts.inter(
+        color: onSurface,
+        fontSize: 12,
+      ),
+      labelLarge: GoogleFonts.inter(
+        color: onSurface,
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: onSurface,
+        letterSpacing: 0.1,
       ),
     );
   }

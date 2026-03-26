@@ -72,15 +72,15 @@ class AttendanceRepository {
   Future<AttendanceRecord> checkIn(
     String projectId,
     String date,
-    double lat,
-    double lng,
-    String selfiePath,
-  ) async {
+    String selfiePath, {
+    double? lat,
+    double? lng,
+  }) async {
     final file = File(selfiePath);
     final formData = FormData.fromMap({
       'date': date,
-      'lat': lat,
-      'lng': lng,
+      if (lat != null) 'lat': lat,
+      if (lng != null) 'lng': lng,
       'selfie': await MultipartFile.fromFile(
         selfiePath,
         filename: file.path.split(Platform.pathSeparator).last,
@@ -96,15 +96,15 @@ class AttendanceRepository {
   Future<AttendanceRecord> checkOut(
     String projectId,
     String date,
-    double lat,
-    double lng,
-    String selfiePath,
-  ) async {
+    String selfiePath, {
+    double? lat,
+    double? lng,
+  }) async {
     final file = File(selfiePath);
     final formData = FormData.fromMap({
       'date': date,
-      'lat': lat,
-      'lng': lng,
+      if (lat != null) 'lat': lat,
+      if (lng != null) 'lng': lng,
       'selfie': await MultipartFile.fromFile(
         selfiePath,
         filename: file.path.split(Platform.pathSeparator).last,

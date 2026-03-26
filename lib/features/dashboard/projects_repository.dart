@@ -38,14 +38,21 @@ class Project {
     return null;
   }
 
+  static double? _toDouble(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    if (v is String) return double.tryParse(v);
+    return null;
+  }
+
   static Project fromJson(Map<String, dynamic> json) {
     return Project(
       id: json['id'] as String,
       tenantId: json['tenant_id'] as String,
       name: json['name'] as String,
       timezone: json['timezone'] as String? ?? 'Asia/Kolkata',
-      lat: (json['lat'] as num?)?.toDouble(),
-      lng: (json['lng'] as num?)?.toDouble(),
+      lat: _toDouble(json['lat']),
+      lng: _toDouble(json['lng']),
       location: json['location'] as String?,
       address: json['address'] as String?,
       createdAt: json['created_at'] as String?,

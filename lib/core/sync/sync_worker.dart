@@ -21,6 +21,7 @@ class SyncWorker {
   final PullService _pullService;
   final Connectivity _connectivity;
   final Map<String, Future<bool> Function(Map<String, dynamic> payload)> _handlers;
+  bool _running = false;
 
   void registerHandler(String kind, Future<bool> Function(Map<String, dynamic> payload) handler) {
     _handlers[kind] = handler;
@@ -34,35 +35,40 @@ class SyncWorker {
     return list.any((r) => r != ConnectivityResult.none);
   }
 
-  /// Push pending queue then full pull when online.
+  /// Push pending queue then full pull when online. Only one run at a time to avoid duplicate API calls.
   Future<void> run() async {
     if (!await isOnline) return;
-
-    final pending = await _repo.getPending();
-    for (final item in pending) {
-      Map<String, dynamic> payload;
-      try {
-        payload = jsonDecode(item.payloadJson) as Map<String, dynamic>;
-      } catch (_) {
-        continue;
-      }
-      final handler = _handlers[item.kind];
-      if (handler == null) break;
-      bool success = false;
-      try {
-        success = await handler(payload);
-      } catch (_) {
-        break;
-      }
-      if (success) {
-        await _repo.markSynced(item.id);
-      } else {
-        break;
-      }
-    }
-
+    if (_running) return;
+    _running = true;
     try {
-      await _pullService.runFullPull();
-    } catch (_) {}
+      final pending = await _repo.getPending();
+      for (final item in pending) {
+        Map<String, dynamic> payload;
+        try {
+          payload = jsonDecode(item.payloadJson) as Map<String, dynamic>;
+        } catch (_) {
+          continue;
+        }
+        final handler = _handlers[item.kind];
+        if (handler == null) break;
+        bool success = false;
+        try {
+          success = await handler(payload);
+        } catch (_) {
+          break;
+        }
+        if (success) {
+          await _repo.markSynced(item.id);
+        } else {
+          break;
+        }
+      }
+
+      try {
+        await _pullService.runFullPull();
+      } catch (_) {}
+    } finally {
+      _running = false;
+    }
   }
 }

@@ -143,21 +143,21 @@ void _registerAttendanceSyncHandlers(SyncWorker syncWorker) {
   syncWorker.registerHandler('attendance_check_in', (payload) async {
     final projectId = payload['project_id'] as String;
     final date = payload['date'] as String;
-    final lat = (payload['lat'] as num).toDouble();
-    final lng = (payload['lng'] as num).toDouble();
+    final lat = (payload['lat'] as num?)?.toDouble();
+    final lng = (payload['lng'] as num?)?.toDouble();
     final selfiePath = payload['selfie_path'] as String?;
     if (selfiePath == null || !File(selfiePath).existsSync()) return false;
-    await repo.checkIn(projectId, date, lat, lng, selfiePath);
+    await repo.checkIn(projectId, date, selfiePath, lat: lat, lng: lng);
     return true;
   });
   syncWorker.registerHandler('attendance_check_out', (payload) async {
     final projectId = payload['project_id'] as String;
     final date = payload['date'] as String;
-    final lat = (payload['lat'] as num).toDouble();
-    final lng = (payload['lng'] as num).toDouble();
+    final lat = (payload['lat'] as num?)?.toDouble();
+    final lng = (payload['lng'] as num?)?.toDouble();
     final selfiePath = payload['selfie_path'] as String?;
     if (selfiePath == null || !File(selfiePath).existsSync()) return false;
-    await repo.checkOut(projectId, date, lat, lng, selfiePath);
+    await repo.checkOut(projectId, date, selfiePath, lat: lat, lng: lng);
     return true;
   });
 }

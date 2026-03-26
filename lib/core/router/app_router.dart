@@ -14,6 +14,7 @@ import '../../features/materials/material_ledger_screen.dart';
 import '../../features/materials/materials_repository.dart';
 import '../../features/materials/materials_screen.dart';
 import '../../features/project/project_placeholder_screen.dart';
+import '../../features/tasks/due_tasks_screen.dart';
 import '../../features/tasks/task_detail_screen.dart';
 import '../../features/tasks/tasks_repository.dart';
 import '../../features/tasks/tasks_screen.dart';
@@ -42,6 +43,10 @@ GoRouter createAppRouter() {
       GoRoute(
         path: '/pending-sync',
         builder: (context, state) => const PendingSyncScreen(),
+      ),
+      GoRoute(
+        path: '/due-tasks',
+        builder: (context, state) => const DueTasksScreen(),
       ),
       GoRoute(
         path: '/project/:id',

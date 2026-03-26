@@ -260,6 +260,10 @@ class PullService {
             onConflict: DoUpdate((old) => CacheDailyReportEntriesCompanion(payloadJson: Value(json), updatedAt: Value(updatedAt))),
           );
         }
+        // Remove pending placeholders for this date so we don't show duplicates after sync
+        await (_db.delete(_db.cacheDailyReportEntries)
+              ..where((t) => t.projectId.equals(projectId) & t.reportDate.equals(reportDate) & t.id.like('pending-%')))
+            .go();
       } on DioException catch (_) {
         // skip single date failure
       }

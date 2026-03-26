@@ -140,4 +140,50 @@ class DailyReportRepository {
     );
     return DailyReportEntry.fromJson(res.data!);
   }
+
+  /// Insert a pending note into local cache so it shows in UI immediately when offline.
+  Future<void> insertPendingNote(String projectId, String reportDate, String content, {int sortOrder = 0}) async {
+    final id = 'pending-note-${DateTime.now().millisecondsSinceEpoch}';
+    final now = DateTime.now().toUtc().toIso8601String();
+    final payload = <String, dynamic>{
+      'id': id,
+      'daily_report_id': '',
+      'type': 'note',
+      'content': content,
+      'sort_order': sortOrder,
+      'created_at': now,
+    };
+    await _db.into(_db.cacheDailyReportEntries).insert(
+      CacheDailyReportEntriesCompanion.insert(
+        id: id,
+        projectId: projectId,
+        reportDate: reportDate,
+        payloadJson: jsonEncode(payload),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
+  /// Insert a pending photo into local cache so it shows in UI immediately when offline.
+  Future<void> insertPendingPhoto(String projectId, String reportDate, String photoPath, {int sortOrder = 0}) async {
+    final id = 'pending-photo-${DateTime.now().millisecondsSinceEpoch}';
+    final now = DateTime.now().toUtc().toIso8601String();
+    final payload = <String, dynamic>{
+      'id': id,
+      'daily_report_id': '',
+      'type': 'photo',
+      'content': photoPath,
+      'sort_order': sortOrder,
+      'created_at': now,
+    };
+    await _db.into(_db.cacheDailyReportEntries).insert(
+      CacheDailyReportEntriesCompanion.insert(
+        id: id,
+        projectId: projectId,
+        reportDate: reportDate,
+        payloadJson: jsonEncode(payload),
+        updatedAt: Value(now),
+      ),
+    );
+  }
 }

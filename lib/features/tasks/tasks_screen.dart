@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../dashboard/projects_repository.dart';
 import 'tasks_repository.dart';
 import '../../core/errors/user_facing_messages.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/storage/sync_queue_repository.dart';
 import '../../core/sync/sync_status_notifier.dart';
 
@@ -18,11 +19,6 @@ class TasksScreen extends StatefulWidget {
   State<TasksScreen> createState() => _TasksScreenState();
 }
 
-/// Special filter value: show only "To Do" and "In Progress" (exclude Done).
-const String _kFilterActive = 'active';
-/// Special filter value: show all statuses.
-const String _kFilterAll = 'all';
-
 class _TasksScreenState extends State<TasksScreen> {
   final _repo = TasksRepository();
   final _projectsRepo = ProjectsRepository();
@@ -32,10 +28,11 @@ class _TasksScreenState extends State<TasksScreen> {
   List<Task> _tasks = [];
   String? _projectRole; // admin | member | viewer
   bool _loading = true;
-  /// Status filter: null or _kFilterActive = active only, _kFilterAll = all, else status id.
-  String? _filterStatusId = _kFilterActive;
 
-  bool get _canCreateTask => _projectRole == 'admin' || _projectRole == 'member';
+  /// Assignee filter — only visible for admins. null = show all.
+  String? _filterAssigneeId;
+
+  bool get _canCreateTask => _projectRole == 'admin';
 
   static bool _isDoneStatusName(String? name) {
     if (name == null || name.isEmpty) return false;
@@ -43,17 +40,24 @@ class _TasksScreenState extends State<TasksScreen> {
     return lower.contains('done') || lower.contains('complete');
   }
 
-  Set<String> get _activeStatusIds => {
-        ..._statuses.where((s) => !_isDoneStatusName(s.name)).map((s) => s.id),
-      };
+  /// Unique (assigneeId, assigneeName) pairs from loaded tasks, for admin filter.
+  List<({String id, String name})> get _assigneeOptions {
+    final seen = <String>{};
+    final result = <({String id, String name})>[];
+    for (final t in _tasks) {
+      if (t.assigneeId != null && t.assigneeId!.isNotEmpty && seen.add(t.assigneeId!)) {
+        result.add((id: t.assigneeId!, name: t.assigneeName ?? t.assigneeId!));
+      }
+    }
+    result.sort((a, b) => a.name.compareTo(b.name));
+    return result;
+  }
 
   List<Task> get _filteredAndSortedTasks {
     List<Task> list = _tasks;
-    if (_filterStatusId == _kFilterActive) {
-      final activeIds = _activeStatusIds;
-      list = list.where((t) => t.statusId != null && activeIds.contains(t.statusId)).toList();
-    } else if (_filterStatusId != null && _filterStatusId != _kFilterAll) {
-      list = list.where((t) => t.statusId == _filterStatusId).toList();
+    // Admin assignee filter
+    if (_filterAssigneeId != null) {
+      list = list.where((t) => t.assigneeId == _filterAssigneeId).toList();
     }
     list = List<Task>.from(list);
     list.sort((a, b) {
@@ -123,7 +127,7 @@ class _TasksScreenState extends State<TasksScreen> {
   static Color _statusColor(BuildContext context, String? statusName) {
     if (statusName == null || statusName.isEmpty) return Theme.of(context).colorScheme.onSurfaceVariant;
     final lower = statusName.toLowerCase();
-    if (lower.contains('done') || lower.contains('complete')) return const Color(0xFF2D8A6E);
+    if (lower.contains('done') || lower.contains('complete')) return AppColors.success;
     if (lower.contains('progress')) return Theme.of(context).colorScheme.primary;
     return Theme.of(context).colorScheme.onSurfaceVariant;
   }
@@ -224,6 +228,10 @@ class _TasksScreenState extends State<TasksScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final assignees = _assigneeOptions;
+    final isAdmin = _projectRole == 'admin';
+    final filtered = _filteredAndSortedTasks;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/project/${widget.projectId}')),
@@ -236,34 +244,32 @@ class _TasksScreenState extends State<TasksScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  if (_statuses.isNotEmpty) ...[
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      children: [
-                        FilterChip(
-                          label: const Text('Active'),
-                          selected: _filterStatusId == _kFilterActive,
-                          onSelected: (_) => setState(() => _filterStatusId = _kFilterActive),
-                        ),
-                        ..._statuses.map((s) {
-                          final selected = _filterStatusId == s.id;
-                          return FilterChip(
-                            label: Text(s.name),
-                            selected: selected,
-                            onSelected: (_) => setState(() => _filterStatusId = s.id),
-                          );
-                        }),
-                        FilterChip(
-                          label: const Text('All'),
-                          selected: _filterStatusId == _kFilterAll,
-                          onSelected: (_) => setState(() => _filterStatusId = _kFilterAll),
-                        ),
-                      ],
+                  // Assignee filter — admins only
+                  if (isAdmin && assignees.isNotEmpty) ...[
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          ChoiceChip(
+                            label: const Text('All'),
+                            selected: _filterAssigneeId == null,
+                            onSelected: (_) => setState(() => _filterAssigneeId = null),
+                          ),
+                          const SizedBox(width: 8),
+                          ...assignees.map((a) => Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: ChoiceChip(
+                                  label: Text(a.name),
+                                  selected: _filterAssigneeId == a.id,
+                                  onSelected: (_) => setState(() => _filterAssigneeId = a.id),
+                                ),
+                              )),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                   ],
-                  if (_filteredAndSortedTasks.isEmpty)
+                  if (filtered.isEmpty)
                     Padding(
                       padding: const EdgeInsets.all(24),
                       child: Center(
@@ -274,12 +280,18 @@ class _TasksScreenState extends State<TasksScreen> {
                       ),
                     )
                   else
-                    ..._filteredAndSortedTasks.map((t) {
+                    ...filtered.map((t) {
                       final statusName = _statusName(t.statusId);
                       final statusColor = _statusColor(context, statusName);
                       final overdue = _isOverdue(t);
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
+                        shape: overdue
+                            ? RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(color: Colors.orange.shade700, width: 2.5),
+                              )
+                            : null,
                         child: ListTile(
                           title: Text(t.title),
                           subtitle: Column(
@@ -299,34 +311,29 @@ class _TasksScreenState extends State<TasksScreen> {
                                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                     visualDensity: VisualDensity.compact,
                                   ),
-                                  if (overdue)
-                                    Chip(
-                                      label: Text('Overdue', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.error)),
-                                      backgroundColor: Theme.of(context).colorScheme.errorContainer,
-                                      padding: EdgeInsets.zero,
-                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                  Text(
-                                    t.assigneeName != null && t.assigneeName!.isNotEmpty
-                                        ? 'Assigned to ${t.assigneeName!}'
-                                        : 'Unassigned',
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                        ),
-                                  ),
                                   if (t.dueAt != null && t.dueAt!.isNotEmpty)
                                     Text(
-                                      overdue ? 'Due ${_formatDueAt(t.dueAt)} (overdue)' : 'Due ${_formatDueAt(t.dueAt)}',
+                                      'Due ${_formatDueAt(t.dueAt)}',
                                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                            color: overdue ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.onSurfaceVariant,
+                                            color: overdue
+                                                ? Colors.orange.shade700
+                                                : Theme.of(context).colorScheme.onSurfaceVariant,
                                           ),
                                     ),
                                 ],
                               ),
                             ],
                           ),
-                          trailing: const Icon(Icons.chevron_right),
+                          trailing: overdue
+                              ? Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 18),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.chevron_right),
+                                  ],
+                                )
+                              : const Icon(Icons.chevron_right),
                           onTap: () => context.push('/project/${widget.projectId}/tasks/${t.id}', extra: t),
                         ),
                       );
