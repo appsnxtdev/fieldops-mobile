@@ -89,6 +89,12 @@ class _ProjectHomeScreenState extends State<ProjectHomeScreen> {
               onTap: () => context.go('/project/${widget.projectId}/tasks'),
             ),
             _NavTile(
+              icon: Icons.people,
+              label: 'Labour',
+              subtitle: 'Daily labour count',
+              onTap: () => context.go('/project/${widget.projectId}/labour'),
+            ),
+            _NavTile(
               icon: Icons.inventory_2,
               label: 'Materials',
               subtitle: 'Record material in or out',

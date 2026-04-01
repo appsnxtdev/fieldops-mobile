@@ -14,6 +14,7 @@ import 'features/attendance/attendance_repository.dart';
 import 'features/auth/app_user_state.dart';
 import 'features/daily_report/daily_report_repository.dart';
 import 'features/expense/expense_repository.dart';
+import 'features/labour/labour_repository.dart';
 import 'features/materials/materials_repository.dart';
 import 'features/tasks/tasks_repository.dart';
 
@@ -34,6 +35,7 @@ class App extends StatelessWidget {
     _registerDailyReportSyncHandlers(syncWorker);
     _registerTasksSyncHandlers(syncWorker);
     _registerMaterialsSyncHandlers(syncWorker);
+    _registerLabourSyncHandlers(syncWorker);
 
     return MultiProvider(
       providers: [
@@ -212,6 +214,21 @@ void _registerMaterialsSyncHandlers(SyncWorker syncWorker) {
     final quantity = (payload['quantity'] as num).toDouble();
     final notes = payload['notes'] as String?;
     await repo.addLedgerEntry(projectId, materialId, type: type, quantity: quantity, notes: notes);
+    return true;
+  });
+}
+
+void _registerLabourSyncHandlers(SyncWorker syncWorker) {
+  final repo = LabourRepository();
+  syncWorker.registerHandler('labour_daily_upsert', (payload) async {
+    final projectId = payload['project_id'] as String;
+    final date = payload['date'] as String;
+    final entries = payload['entries'] as List;
+    await repo.upsertLabourDaily(
+      projectId: projectId,
+      date: date,
+      entries: entries.cast<Map<String, dynamic>>(),
+    );
     return true;
   });
 }

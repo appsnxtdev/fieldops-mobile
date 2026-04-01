@@ -3880,6 +3880,601 @@ class CacheMaterialLedgerCompanion
   }
 }
 
+class $CacheLabourTypesTable extends CacheLabourTypes
+    with TableInfo<$CacheLabourTypesTable, CacheLabourType> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CacheLabourTypesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, payloadJson, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cache_labour_types';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CacheLabourType> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadJsonMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CacheLabourType map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CacheLabourType(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_at'],
+      ),
+    );
+  }
+
+  @override
+  $CacheLabourTypesTable createAlias(String alias) {
+    return $CacheLabourTypesTable(attachedDatabase, alias);
+  }
+}
+
+class CacheLabourType extends DataClass implements Insertable<CacheLabourType> {
+  final String id;
+  final String payloadJson;
+  final String? updatedAt;
+  const CacheLabourType({
+    required this.id,
+    required this.payloadJson,
+    this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['payload_json'] = Variable<String>(payloadJson);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<String>(updatedAt);
+    }
+    return map;
+  }
+
+  CacheLabourTypesCompanion toCompanion(bool nullToAbsent) {
+    return CacheLabourTypesCompanion(
+      id: Value(id),
+      payloadJson: Value(payloadJson),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+    );
+  }
+
+  factory CacheLabourType.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CacheLabourType(
+      id: serializer.fromJson<String>(json['id']),
+      payloadJson: serializer.fromJson<String>(json['payloadJson']),
+      updatedAt: serializer.fromJson<String?>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'payloadJson': serializer.toJson<String>(payloadJson),
+      'updatedAt': serializer.toJson<String?>(updatedAt),
+    };
+  }
+
+  CacheLabourType copyWith({
+    String? id,
+    String? payloadJson,
+    Value<String?> updatedAt = const Value.absent(),
+  }) => CacheLabourType(
+    id: id ?? this.id,
+    payloadJson: payloadJson ?? this.payloadJson,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+  );
+  CacheLabourType copyWithCompanion(CacheLabourTypesCompanion data) {
+    return CacheLabourType(
+      id: data.id.present ? data.id.value : this.id,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CacheLabourType(')
+          ..write('id: $id, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, payloadJson, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CacheLabourType &&
+          other.id == this.id &&
+          other.payloadJson == this.payloadJson &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CacheLabourTypesCompanion extends UpdateCompanion<CacheLabourType> {
+  final Value<String> id;
+  final Value<String> payloadJson;
+  final Value<String?> updatedAt;
+  final Value<int> rowid;
+  const CacheLabourTypesCompanion({
+    this.id = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CacheLabourTypesCompanion.insert({
+    required String id,
+    required String payloadJson,
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       payloadJson = Value(payloadJson);
+  static Insertable<CacheLabourType> custom({
+    Expression<String>? id,
+    Expression<String>? payloadJson,
+    Expression<String>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CacheLabourTypesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? payloadJson,
+    Value<String?>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return CacheLabourTypesCompanion(
+      id: id ?? this.id,
+      payloadJson: payloadJson ?? this.payloadJson,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CacheLabourTypesCompanion(')
+          ..write('id: $id, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CacheLabourDailyTable extends CacheLabourDaily
+    with TableInfo<$CacheLabourDailyTable, CacheLabourDailyData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CacheLabourDailyTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    projectId,
+    date,
+    payloadJson,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cache_labour_daily';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CacheLabourDailyData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_projectIdMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadJsonMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {projectId, date};
+  @override
+  CacheLabourDailyData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CacheLabourDailyData(
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date'],
+      )!,
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_at'],
+      ),
+    );
+  }
+
+  @override
+  $CacheLabourDailyTable createAlias(String alias) {
+    return $CacheLabourDailyTable(attachedDatabase, alias);
+  }
+}
+
+class CacheLabourDailyData extends DataClass
+    implements Insertable<CacheLabourDailyData> {
+  final String projectId;
+  final String date;
+  final String payloadJson;
+  final String? updatedAt;
+  const CacheLabourDailyData({
+    required this.projectId,
+    required this.date,
+    required this.payloadJson,
+    this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['project_id'] = Variable<String>(projectId);
+    map['date'] = Variable<String>(date);
+    map['payload_json'] = Variable<String>(payloadJson);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<String>(updatedAt);
+    }
+    return map;
+  }
+
+  CacheLabourDailyCompanion toCompanion(bool nullToAbsent) {
+    return CacheLabourDailyCompanion(
+      projectId: Value(projectId),
+      date: Value(date),
+      payloadJson: Value(payloadJson),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+    );
+  }
+
+  factory CacheLabourDailyData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CacheLabourDailyData(
+      projectId: serializer.fromJson<String>(json['projectId']),
+      date: serializer.fromJson<String>(json['date']),
+      payloadJson: serializer.fromJson<String>(json['payloadJson']),
+      updatedAt: serializer.fromJson<String?>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'projectId': serializer.toJson<String>(projectId),
+      'date': serializer.toJson<String>(date),
+      'payloadJson': serializer.toJson<String>(payloadJson),
+      'updatedAt': serializer.toJson<String?>(updatedAt),
+    };
+  }
+
+  CacheLabourDailyData copyWith({
+    String? projectId,
+    String? date,
+    String? payloadJson,
+    Value<String?> updatedAt = const Value.absent(),
+  }) => CacheLabourDailyData(
+    projectId: projectId ?? this.projectId,
+    date: date ?? this.date,
+    payloadJson: payloadJson ?? this.payloadJson,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+  );
+  CacheLabourDailyData copyWithCompanion(CacheLabourDailyCompanion data) {
+    return CacheLabourDailyData(
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      date: data.date.present ? data.date.value : this.date,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CacheLabourDailyData(')
+          ..write('projectId: $projectId, ')
+          ..write('date: $date, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(projectId, date, payloadJson, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CacheLabourDailyData &&
+          other.projectId == this.projectId &&
+          other.date == this.date &&
+          other.payloadJson == this.payloadJson &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CacheLabourDailyCompanion extends UpdateCompanion<CacheLabourDailyData> {
+  final Value<String> projectId;
+  final Value<String> date;
+  final Value<String> payloadJson;
+  final Value<String?> updatedAt;
+  final Value<int> rowid;
+  const CacheLabourDailyCompanion({
+    this.projectId = const Value.absent(),
+    this.date = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CacheLabourDailyCompanion.insert({
+    required String projectId,
+    required String date,
+    required String payloadJson,
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : projectId = Value(projectId),
+       date = Value(date),
+       payloadJson = Value(payloadJson);
+  static Insertable<CacheLabourDailyData> custom({
+    Expression<String>? projectId,
+    Expression<String>? date,
+    Expression<String>? payloadJson,
+    Expression<String>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (projectId != null) 'project_id': projectId,
+      if (date != null) 'date': date,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CacheLabourDailyCompanion copyWith({
+    Value<String>? projectId,
+    Value<String>? date,
+    Value<String>? payloadJson,
+    Value<String?>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return CacheLabourDailyCompanion(
+      projectId: projectId ?? this.projectId,
+      date: date ?? this.date,
+      payloadJson: payloadJson ?? this.payloadJson,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CacheLabourDailyCompanion(')
+          ..write('projectId: $projectId, ')
+          ..write('date: $date, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SyncMetadataTable extends SyncMetadata
     with TableInfo<$SyncMetadataTable, SyncMetadataData> {
   @override
@@ -4131,6 +4726,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CacheMaterialsTable cacheMaterials = $CacheMaterialsTable(this);
   late final $CacheMaterialLedgerTable cacheMaterialLedger =
       $CacheMaterialLedgerTable(this);
+  late final $CacheLabourTypesTable cacheLabourTypes = $CacheLabourTypesTable(
+    this,
+  );
+  late final $CacheLabourDailyTable cacheLabourDaily = $CacheLabourDailyTable(
+    this,
+  );
   late final $SyncMetadataTable syncMetadata = $SyncMetadataTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -4149,6 +4750,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cacheMasterMaterials,
     cacheMaterials,
     cacheMaterialLedger,
+    cacheLabourTypes,
+    cacheLabourDaily,
     syncMetadata,
   ];
 }
@@ -6472,6 +7075,369 @@ typedef $$CacheMaterialLedgerTableProcessedTableManager =
       CacheMaterialLedgerData,
       PrefetchHooks Function()
     >;
+typedef $$CacheLabourTypesTableCreateCompanionBuilder =
+    CacheLabourTypesCompanion Function({
+      required String id,
+      required String payloadJson,
+      Value<String?> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$CacheLabourTypesTableUpdateCompanionBuilder =
+    CacheLabourTypesCompanion Function({
+      Value<String> id,
+      Value<String> payloadJson,
+      Value<String?> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$CacheLabourTypesTableFilterComposer
+    extends Composer<_$AppDatabase, $CacheLabourTypesTable> {
+  $$CacheLabourTypesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CacheLabourTypesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CacheLabourTypesTable> {
+  $$CacheLabourTypesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CacheLabourTypesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CacheLabourTypesTable> {
+  $$CacheLabourTypesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$CacheLabourTypesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CacheLabourTypesTable,
+          CacheLabourType,
+          $$CacheLabourTypesTableFilterComposer,
+          $$CacheLabourTypesTableOrderingComposer,
+          $$CacheLabourTypesTableAnnotationComposer,
+          $$CacheLabourTypesTableCreateCompanionBuilder,
+          $$CacheLabourTypesTableUpdateCompanionBuilder,
+          (
+            CacheLabourType,
+            BaseReferences<
+              _$AppDatabase,
+              $CacheLabourTypesTable,
+              CacheLabourType
+            >,
+          ),
+          CacheLabourType,
+          PrefetchHooks Function()
+        > {
+  $$CacheLabourTypesTableTableManager(
+    _$AppDatabase db,
+    $CacheLabourTypesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CacheLabourTypesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CacheLabourTypesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CacheLabourTypesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> payloadJson = const Value.absent(),
+                Value<String?> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CacheLabourTypesCompanion(
+                id: id,
+                payloadJson: payloadJson,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String payloadJson,
+                Value<String?> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CacheLabourTypesCompanion.insert(
+                id: id,
+                payloadJson: payloadJson,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CacheLabourTypesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CacheLabourTypesTable,
+      CacheLabourType,
+      $$CacheLabourTypesTableFilterComposer,
+      $$CacheLabourTypesTableOrderingComposer,
+      $$CacheLabourTypesTableAnnotationComposer,
+      $$CacheLabourTypesTableCreateCompanionBuilder,
+      $$CacheLabourTypesTableUpdateCompanionBuilder,
+      (
+        CacheLabourType,
+        BaseReferences<_$AppDatabase, $CacheLabourTypesTable, CacheLabourType>,
+      ),
+      CacheLabourType,
+      PrefetchHooks Function()
+    >;
+typedef $$CacheLabourDailyTableCreateCompanionBuilder =
+    CacheLabourDailyCompanion Function({
+      required String projectId,
+      required String date,
+      required String payloadJson,
+      Value<String?> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$CacheLabourDailyTableUpdateCompanionBuilder =
+    CacheLabourDailyCompanion Function({
+      Value<String> projectId,
+      Value<String> date,
+      Value<String> payloadJson,
+      Value<String?> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$CacheLabourDailyTableFilterComposer
+    extends Composer<_$AppDatabase, $CacheLabourDailyTable> {
+  $$CacheLabourDailyTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CacheLabourDailyTableOrderingComposer
+    extends Composer<_$AppDatabase, $CacheLabourDailyTable> {
+  $$CacheLabourDailyTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CacheLabourDailyTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CacheLabourDailyTable> {
+  $$CacheLabourDailyTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get projectId =>
+      $composableBuilder(column: $table.projectId, builder: (column) => column);
+
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$CacheLabourDailyTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CacheLabourDailyTable,
+          CacheLabourDailyData,
+          $$CacheLabourDailyTableFilterComposer,
+          $$CacheLabourDailyTableOrderingComposer,
+          $$CacheLabourDailyTableAnnotationComposer,
+          $$CacheLabourDailyTableCreateCompanionBuilder,
+          $$CacheLabourDailyTableUpdateCompanionBuilder,
+          (
+            CacheLabourDailyData,
+            BaseReferences<
+              _$AppDatabase,
+              $CacheLabourDailyTable,
+              CacheLabourDailyData
+            >,
+          ),
+          CacheLabourDailyData,
+          PrefetchHooks Function()
+        > {
+  $$CacheLabourDailyTableTableManager(
+    _$AppDatabase db,
+    $CacheLabourDailyTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CacheLabourDailyTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CacheLabourDailyTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CacheLabourDailyTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> projectId = const Value.absent(),
+                Value<String> date = const Value.absent(),
+                Value<String> payloadJson = const Value.absent(),
+                Value<String?> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CacheLabourDailyCompanion(
+                projectId: projectId,
+                date: date,
+                payloadJson: payloadJson,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String projectId,
+                required String date,
+                required String payloadJson,
+                Value<String?> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CacheLabourDailyCompanion.insert(
+                projectId: projectId,
+                date: date,
+                payloadJson: payloadJson,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CacheLabourDailyTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CacheLabourDailyTable,
+      CacheLabourDailyData,
+      $$CacheLabourDailyTableFilterComposer,
+      $$CacheLabourDailyTableOrderingComposer,
+      $$CacheLabourDailyTableAnnotationComposer,
+      $$CacheLabourDailyTableCreateCompanionBuilder,
+      $$CacheLabourDailyTableUpdateCompanionBuilder,
+      (
+        CacheLabourDailyData,
+        BaseReferences<
+          _$AppDatabase,
+          $CacheLabourDailyTable,
+          CacheLabourDailyData
+        >,
+      ),
+      CacheLabourDailyData,
+      PrefetchHooks Function()
+    >;
 typedef $$SyncMetadataTableCreateCompanionBuilder =
     SyncMetadataCompanion Function({
       required String entityType,
@@ -6653,6 +7619,10 @@ class $AppDatabaseManager {
       $$CacheMaterialsTableTableManager(_db, _db.cacheMaterials);
   $$CacheMaterialLedgerTableTableManager get cacheMaterialLedger =>
       $$CacheMaterialLedgerTableTableManager(_db, _db.cacheMaterialLedger);
+  $$CacheLabourTypesTableTableManager get cacheLabourTypes =>
+      $$CacheLabourTypesTableTableManager(_db, _db.cacheLabourTypes);
+  $$CacheLabourDailyTableTableManager get cacheLabourDaily =>
+      $$CacheLabourDailyTableTableManager(_db, _db.cacheLabourDaily);
   $$SyncMetadataTableTableManager get syncMetadata =>
       $$SyncMetadataTableTableManager(_db, _db.syncMetadata);
 }

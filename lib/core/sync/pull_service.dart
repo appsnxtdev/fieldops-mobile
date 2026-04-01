@@ -26,6 +26,7 @@ class PullService {
   Future<void> runFullPull() async {
     await _pullProjects();
     await _pullMasterMaterials();
+    await _pullLabourTypes();
     final projects = await _db.select(_db.cacheProjects).get();
     for (final row in projects) {
       final map = jsonDecode(row.payloadJson) as Map<String, dynamic>?;
@@ -39,6 +40,7 @@ class PullService {
       await _pullMaterialLedgerForProject(projectId);
       await _pullAttendanceLastDays(projectId, 7);
       await _pullDailyReportEntriesLastDays(projectId, 7);
+      await _pullLabourDailyLastDays(projectId, 7);
     }
     await _setLastPullAt('full');
   }
@@ -266,6 +268,56 @@ class PullService {
             .go();
       } on DioException catch (_) {
         // skip single date failure
+      }
+    }
+  }
+
+  Future<void> _pullLabourTypes() async {
+    try {
+      final res = await _dio.get<List<dynamic>>('/api/v1/labour-types');
+      final list = res.data ?? [];
+      for (final e in list) {
+        final item = e as Map<String, dynamic>;
+        final id = item['id'] as String?;
+        if (id == null) continue;
+        final updatedAt = item['updated_at'] as String? ?? item['created_at'] as String?;
+        final existing = await (_db.select(_db.cacheLabourTypes)..where((t) => t.id.equals(id))).getSingleOrNull();
+        if (existing != null && _isLocalNewerOrEqual(existing.updatedAt, updatedAt)) continue;
+        final json = jsonEncode(item);
+        await _db.into(_db.cacheLabourTypes).insert(
+          CacheLabourTypesCompanion.insert(id: id, payloadJson: json, updatedAt: Value(updatedAt)),
+          onConflict: DoUpdate((old) => CacheLabourTypesCompanion(payloadJson: Value(json), updatedAt: Value(updatedAt))),
+        );
+      }
+    } on DioException catch (_) {}
+  }
+
+  Future<void> _pullLabourDailyLastDays(String projectId, int days) async {
+    final now = DateTime.now().toUtc();
+    for (var i = 0; i < days; i++) {
+      final d = now.subtract(Duration(days: i));
+      final date = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      try {
+        final res = await _dio.get<Map<String, dynamic>>(
+          '/api/v1/labour/daily',
+          queryParameters: {'project_id': projectId, 'date': date},
+        );
+        final data = res.data;
+        if (data != null && data['entries'] is List) {
+          final updatedAt = DateTime.now().toUtc().toIso8601String();
+          final json = jsonEncode(data);
+          await _db.into(_db.cacheLabourDaily).insert(
+            CacheLabourDailyCompanion.insert(
+              projectId: projectId,
+              date: date,
+              payloadJson: json,
+              updatedAt: Value(updatedAt),
+            ),
+            onConflict: DoUpdate((old) => CacheLabourDailyCompanion(payloadJson: Value(json), updatedAt: Value(updatedAt))),
+          );
+        }
+      } on DioException catch (_) {
+        // skip single date failure (404 is expected if no data for that date)
       }
     }
   }

@@ -115,6 +115,23 @@ class CacheMaterialLedger extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class CacheLabourTypes extends Table {
+  TextColumn get id => text()();
+  TextColumn get payloadJson => text()();
+  TextColumn get updatedAt => text().nullable()();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class CacheLabourDaily extends Table {
+  TextColumn get projectId => text()();
+  TextColumn get date => text()();
+  TextColumn get payloadJson => text()();
+  TextColumn get updatedAt => text().nullable()();
+  @override
+  Set<Column> get primaryKey => {projectId, date};
+}
+
 class SyncMetadata extends Table {
   TextColumn get entityType => text()();
   DateTimeColumn get lastPullAt => dateTime()();
@@ -136,6 +153,8 @@ class SyncMetadata extends Table {
     CacheMasterMaterials,
     CacheMaterials,
     CacheMaterialLedger,
+    CacheLabourTypes,
+    CacheLabourDaily,
     SyncMetadata,
   ],
 )
@@ -153,7 +172,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -171,6 +190,10 @@ class AppDatabase extends _$AppDatabase {
             await migrator.createTable(cacheMaterials);
             await migrator.createTable(cacheMaterialLedger);
             await migrator.createTable(syncMetadata);
+          }
+          if (from < 3) {
+            await migrator.createTable(cacheLabourTypes);
+            await migrator.createTable(cacheLabourDaily);
           }
         },
       );

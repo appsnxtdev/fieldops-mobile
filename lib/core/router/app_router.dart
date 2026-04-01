@@ -10,6 +10,7 @@ import '../../features/project/project_home_screen.dart';
 import '../../features/attendance/attendance_screen.dart';
 import '../../features/daily_report/daily_report_screen.dart';
 import '../../features/expense/wallet_screen.dart';
+import '../../features/labour/labour_screen.dart';
 import '../../features/materials/material_ledger_screen.dart';
 import '../../features/materials/materials_repository.dart';
 import '../../features/materials/materials_screen.dart';
@@ -75,6 +76,17 @@ GoRouter createAppRouter() {
             builder: (context, state) {
               final id = state.pathParameters['id']!;
               return DailyReportScreen(projectId: id);
+            },
+          ),
+          GoRoute(
+            path: 'labour',
+            builder: (context, state) {
+              final id = state.pathParameters['id']!;
+              final project = state.extra as Project?;
+              return LabourScreen(
+                projectId: id,
+                projectName: project?.name ?? 'Project',
+              );
             },
           ),
           GoRoute(
